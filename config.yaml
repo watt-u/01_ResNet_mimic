@@ -1,0 +1,135 @@
+# STEMI / NSTEMI / Control classification experiment config
+
+# -----------------------------------------------------------------------------
+# Data paths
+# -----------------------------------------------------------------------------
+# Local defaults. Override with env vars or CLI args for Modal/cloud.
+zarr_root: /Volumes/WD Blue SN5000 1TB/MIMIC-IV-ECG/versions/zarr_100hz
+labels_csv: data_versions/mimic-iv-ecg-ext-icd-diagnostic-labels-for-mimic-iv-ecg-1.0.1/records_w_diag_icd10.csv
+
+# Output directory (relative to project root if not absolute)
+output_dir: experiments/01_ResNet_mimic/outputs
+
+# Cohort CSV written by build_cohort.py
+cohort_csv: experiments/01_ResNet_mimic/outputs/cohort.csv
+
+# -----------------------------------------------------------------------------
+# Cohort definition
+# -----------------------------------------------------------------------------
+# Primary label source used to assign the class label.
+# Sensitivity runs can override this at training time.
+label_source: ed_diag_hosp
+
+# Sample filters
+filters:
+  ecg_taken_in_ed: true
+  ecg_no_within_stay: 0
+
+# Class ICD-10-CM regex patterns (codes are stored dotless in the CSV)
+classes:
+  stemi:
+    # Strong STEMI + unspecified site (I21.3) per user decision
+    patterns:
+      - "\\bI210"
+      - "\\bI211"
+      - "\\bI212"
+      - "\\bI213\\b"
+  nstemi:
+    patterns:
+      - "\\bI214\\b"
+  control:
+    # Defined implicitly: no I21.* and no I22.* codes in the chosen label source
+    patterns: []
+
+# Codes that exclude a record from the control class (any acute MI)
+acute_mi_exclusion:
+  - "\\bI21"
+  - "\\bI22"
+
+# Excluded acute-MI subtypes (these records are dropped entirely, not labeled)
+excluded_subtypes:
+  # Any I21 or I22 already excluded above; we additionally drop these if they
+  # are the *only* acute-MI code present and do not match STEMI/NSTEMI.
+  # In practice any I21.* or I22.* record is excluded from Control and, if it
+  # does not match STEMI/NSTEMI patterns, dropped entirely.
+
+# -----------------------------------------------------------------------------
+# Splits
+# -----------------------------------------------------------------------------
+# The Ext-ICD dataset provides patient-disjoint folds 0-19.
+# 0-17 train, 18 validation, 19 test.
+folds:
+  train: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+  val: [18]
+  test: [19]
+
+# -----------------------------------------------------------------------------
+# Signal preprocessing
+# -----------------------------------------------------------------------------
+fs: 100
+seq_len: 1000
+n_leads: 12
+clip_mV: 3.0
+normalize: zscore_per_record  # none | zscore_per_record | zscore_global
+
+# -----------------------------------------------------------------------------
+# Data loading
+# -----------------------------------------------------------------------------
+batch_size: 128
+num_workers: 4
+pin_memory: true
+prefetch_factor: 2
+preload: false  # load cohort records into RAM at startup (set to true for Modal)
+
+# -----------------------------------------------------------------------------
+# Augmentation (training only)
+# -----------------------------------------------------------------------------
+augmentation:
+  scale_range: [0.8, 1.2]
+  shift_max_samples: 50
+  noise_std: 0.01
+  lead_dropout_prob: 0.1
+  time_mask_prob: 0.1
+  time_mask_max_len: 50
+
+# -----------------------------------------------------------------------------
+# Model
+# -----------------------------------------------------------------------------
+model:
+  name: resnet1d
+  in_channels: 12
+  base_channels: 64
+  layers: [2, 2, 2, 2]  # ResNet-18 style
+  kernel_size: 7
+  embedding_dim: 512
+  num_classes: 3
+  dropout: 0.3
+
+# -----------------------------------------------------------------------------
+# Training
+# -----------------------------------------------------------------------------
+training:
+  epochs: 50
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  optimizer: adamw
+  scheduler: cosine
+  warmup_epochs: 2
+  early_stopping_patience: 7
+  early_stopping_metric: macro_auroc
+  early_stopping_mode: max
+  label_smoothing: 0.0
+  class_weight: inverse_sqrt  # none | inverse | inverse_sqrt
+
+# -----------------------------------------------------------------------------
+# Logging
+# -----------------------------------------------------------------------------
+logging:
+  log_interval_steps: 50
+  val_interval_epochs: 1
+  save_top_k: 3
+
+# -----------------------------------------------------------------------------
+# Reproducibility
+# -----------------------------------------------------------------------------
+seed: 42

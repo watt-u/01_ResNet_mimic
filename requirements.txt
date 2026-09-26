@@ -1,0 +1,20 @@
+# Core ML
+torch>=2.0.0
+numpy>=1.24.0
+scipy>=1.10.0
+
+# Data
+pandas>=2.0.0
+zarr>=3.0.0
+
+# Modal cloud execution
+modal>=0.63.0
+
+# Metrics / utils
+scikit-learn>=1.3.0
+matplotlib>=3.7.0
+tqdm>=4.65.0
+pyyaml>=6.0
+
+# Optional but useful
+tensorboard>=2.13.0

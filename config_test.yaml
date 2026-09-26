@@ -1,0 +1,96 @@
+acute_mi_exclusion:
+- \bI21
+- \bI22
+augmentation:
+  lead_dropout_prob: 0.1
+  noise_std: 0.01
+  scale_range:
+  - 0.8
+  - 1.2
+  shift_max_samples: 50
+  time_mask_max_len: 50
+  time_mask_prob: 0.1
+batch_size: 64
+classes:
+  control:
+    patterns: []
+  nstemi:
+    patterns:
+    - \bI214\b
+  stemi:
+    patterns:
+    - \bI210
+    - \bI211
+    - \bI212
+    - \bI213\b
+clip_mV: 3.0
+cohort_csv: experiments/01_ResNet_mimic/outputs/cohort.csv
+excluded_subtypes: null
+filters:
+  ecg_no_within_stay: 0
+  ecg_taken_in_ed: true
+folds:
+  test:
+  - 19
+  train:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10
+  - 11
+  - 12
+  - 13
+  - 14
+  - 15
+  - 16
+  - 17
+  val:
+  - 18
+fs: 100
+label_source: ed_diag_hosp
+labels_csv: data_versions/mimic-iv-ecg-ext-icd-diagnostic-labels-for-mimic-iv-ecg-1.0.1/records_w_diag_icd10.csv
+logging:
+  log_interval_steps: 50
+  save_top_k: 3
+  val_interval_epochs: 1
+model:
+  base_channels: 64
+  dropout: 0.3
+  embedding_dim: 512
+  in_channels: 12
+  kernel_size: 7
+  layers:
+  - 2
+  - 2
+  - 2
+  - 2
+  name: resnet1d
+  num_classes: 3
+n_leads: 12
+normalize: zscore_per_record
+num_workers: 2
+output_dir: experiments/01_ResNet_mimic/outputs
+pin_memory: true
+prefetch_factor: 2
+seed: 42
+seq_len: 1000
+training:
+  class_weight: inverse_sqrt
+  early_stopping_metric: macro_auroc
+  early_stopping_mode: max
+  early_stopping_patience: 10
+  epochs: 2
+  label_smoothing: 0.0
+  lr: 0.001
+  optimizer: adamw
+  scheduler: cosine
+  warmup_epochs: 2
+  weight_decay: 0.0001
+zarr_root: /Volumes/WD Blue SN5000 1TB/MIMIC-IV-ECG/versions/zarr_100hz
