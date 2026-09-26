@@ -67,3 +67,32 @@ def class_distribution(labels: np.ndarray | pd.Series) -> dict:
     if isinstance(labels, np.ndarray):
         labels = pd.Series(labels)
     return labels.value_counts().sort_index().to_dict()
+
+
+class CSVLogger:
+    """Append train/val metrics to a CSV file after each epoch."""
+
+    def __init__(self, output_path: str | Path) -> None:
+        self.output_path = Path(output_path)
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        self._fieldnames: list[str] | None = None
+        self._file = open(self.output_path, "w", newline="")
+
+    def log_metrics(self, epoch: int, metrics: dict, split: str) -> None:
+        row = {"epoch": epoch, "split": split}
+        row.update(metrics)
+
+        if self._fieldnames is None:
+            # Fix column order: epoch, split, then sorted metric keys.
+            metric_keys = sorted(k for k in metrics if k not in ("epoch", "split"))
+            self._fieldnames = ["epoch", "split", *metric_keys]
+            import csv
+
+            self._writer = csv.DictWriter(self._file, fieldnames=self._fieldnames)
+            self._writer.writeheader()
+
+        self._writer.writerow({k: row.get(k, None) for k in self._fieldnames})
+        self._file.flush()
+
+    def close(self) -> None:
+        self._file.close()

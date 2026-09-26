@@ -51,9 +51,9 @@ To use the sensitivity label source:
 python src/train.py --label-source all_diag_all --run-name all_diag_all_baseline
 ```
 
-Checkpoints, TensorBoard logs, and config are saved under `outputs/<run_name>/`.
-`--run-name` is required. If the directory already exists, use `--resume` to
-continue training or `--force` to overwrite.
+Checkpoints, a per-epoch CSV metrics file, and config are saved under
+`outputs/<run_name>/`. `--run-name` is required. If the directory already
+exists, use `--resume` to continue training or `--force` to overwrite.
 
 ### 4. Evaluate
 
@@ -115,7 +115,7 @@ experiments/01_ResNet_mimic/
         ├── config.yaml
         ├── best_checkpoint.pt
         ├── latest_checkpoint.pt
-        ├── logs/           # TensorBoard
+        ├── metrics.csv     # per-epoch train/val metrics
         └── figures/        # ROC/PR/confusion plots
 ```
 

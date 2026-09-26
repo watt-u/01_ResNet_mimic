@@ -15,12 +15,11 @@ import torch.nn as nn
 import yaml
 from sklearn.metrics import roc_auc_score
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from dataset import Augmentation, ECGDataset, compute_class_weights, make_split
 from model import build_model
-from utils import count_parameters, get_device, load_config, save_config, set_seed
+from utils import CSVLogger, count_parameters, get_device, load_config, save_config, set_seed
 
 
 DEFAULT_CONFIG = Path(__file__).resolve().parent.parent / "config.yaml"
@@ -243,7 +242,7 @@ def main() -> None:
     with open(output_dir / "meta.json", "w") as f:
         json.dump(meta, f, indent=2)
 
-    writer = SummaryWriter(log_dir=output_dir / "logs")
+    logger = CSVLogger(output_dir / "metrics.csv")
 
     device = get_device()
     print(f"Using device: {device}")
@@ -314,10 +313,8 @@ def main() -> None:
               f"acc={val_metrics['accuracy']:.4f} "
               f"macro_auroc={val_metrics['macro_auroc']:.4f}")
 
-        for k, v in train_metrics.items():
-            writer.add_scalar(f"train/{k}", v, epoch)
-        for k, v in val_metrics.items():
-            writer.add_scalar(f"val/{k}", v, epoch)
+        logger.log_metrics(epoch, train_metrics, split="train")
+        logger.log_metrics(epoch, val_metrics, split="val")
 
         current_metric = val_metrics[metric_name]
         improved = current_metric > best_metric if mode == "max" else current_metric < best_metric
@@ -362,7 +359,7 @@ def main() -> None:
             print(f"Early stopping at epoch {epoch + 1}")
             break
 
-    writer.close()
+    logger.close()
     print(f"\nTraining complete. Outputs in {output_dir}")
 
 
