@@ -15,6 +15,7 @@ import torch.nn as nn
 import yaml
 from sklearn.metrics import roc_auc_score
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from dataset import Augmentation, ECGDataset, compute_class_weights, make_split
@@ -243,6 +244,7 @@ def main() -> None:
         json.dump(meta, f, indent=2)
 
     logger = CSVLogger(output_dir / "metrics.csv")
+    writer = SummaryWriter(log_dir=output_dir / "logs")
 
     device = get_device()
     print(f"Using device: {device}")
@@ -315,6 +317,10 @@ def main() -> None:
 
         logger.log_metrics(epoch, train_metrics, split="train")
         logger.log_metrics(epoch, val_metrics, split="val")
+        for k, v in train_metrics.items():
+            writer.add_scalar(f"train/{k}", v, epoch)
+        for k, v in val_metrics.items():
+            writer.add_scalar(f"val/{k}", v, epoch)
 
         current_metric = val_metrics[metric_name]
         improved = current_metric > best_metric if mode == "max" else current_metric < best_metric
@@ -360,6 +366,7 @@ def main() -> None:
             break
 
     logger.close()
+    writer.close()
     print(f"\nTraining complete. Outputs in {output_dir}")
 
 
